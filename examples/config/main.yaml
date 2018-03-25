@@ -1,0 +1,7 @@
+settings:
+  foo: 4
+  bar: "fff"
+
+params:
+  tmp: "33"
+  var: 0.5
