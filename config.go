@@ -7,7 +7,7 @@ import (
 
 	"strings"
 
-	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -22,9 +22,24 @@ func ParseConfig(configDir string, out interface{}, options ...func(*ConfigParse
 }
 
 type ConfigParserOptions struct {
-	Env        string
-	FileParser func([]byte, interface{}) error
-	Extension  string
+	Env         string
+	Transformer DataTransformer
+	Extension   string
+}
+
+type DataTransformer interface {
+	Unmarshal([]byte, interface{}) error
+	Marshal(interface{}) ([]byte, error)
+}
+
+type YamlTransformer struct{}
+
+func (self YamlTransformer) Unmarshal(in []byte, out interface{}) error {
+	return yaml.Unmarshal(in, out)
+}
+
+func (self YamlTransformer) Marshal(in interface{}) ([]byte, error) {
+	return yaml.Marshal(in)
 }
 
 type ConfigParser struct {
@@ -53,8 +68,8 @@ func NewConfigParser(configDir string, options ...func(*ConfigParserOptions)) *C
 		parser.options.Extension = ".yaml"
 	}
 
-	if parser.options.FileParser == nil {
-		parser.options.FileParser = yaml.Unmarshal
+	if parser.options.Transformer == nil {
+		parser.options.Transformer = YamlTransformer{}
 	}
 	parser.envDir = path.Join(configDir, parser.options.Env)
 
@@ -62,6 +77,11 @@ func NewConfigParser(configDir string, options ...func(*ConfigParserOptions)) *C
 }
 
 func (self *ConfigParser) Parse(out interface{}) error {
+	err := self.parse(out)
+	return errors.Wrap(err, "can't parse config: %s")
+}
+
+func (self *ConfigParser) parse(out interface{}) error {
 	configData, err := self.processFile(rootFile)
 	if err != nil {
 		return err
@@ -77,7 +97,7 @@ func (self *ConfigParser) Parse(out interface{}) error {
 		}
 		configData[fileName] = data
 	}
-	writeToOut(configData, out)
+	self.writeToOut(configData, out)
 	return nil
 }
 
@@ -149,7 +169,7 @@ func (self *ConfigParser) mergeFileData(filePath string, resultData map[string]i
 	}
 	if exists {
 		fileData := map[string]interface{}{}
-		err = self.options.FileParser(b, fileData)
+		err = self.options.Transformer.Unmarshal(b, fileData)
 		if err != nil {
 			return err
 		}
@@ -157,16 +177,20 @@ func (self *ConfigParser) mergeFileData(filePath string, resultData map[string]i
 	}
 	return nil
 }
-
-func writeToOut(configData map[string]interface{}, out interface{}) error {
+func (self *ConfigParser) writeToOut(configData map[string]interface{}, out interface{}) error {
 	outMap, ok := out.(map[string]interface{})
 	if ok {
 		for k, v := range configData {
 			outMap[k] = v
 		}
+		return nil
 	}
+	bytesRepresentation, err := self.options.Transformer.Marshal(configData)
+	if err != nil {
+		return err
+	}
+	return self.options.Transformer.Unmarshal(bytesRepresentation, out)
 
-	return mapstructure.Decode(configData, out)
 }
 
 func mergeData(to, from map[string]interface{}) map[string]interface{} {
@@ -185,4 +209,58 @@ func readFile(filePath string) ([]byte, bool, error) {
 		return nil, false, err
 	}
 	return b, true, nil
+}
+
+type RootConfig struct {
+	ServiceName string `yaml:"service_name" json:"service_name"`
+	Port        int    `yaml:"port" json:"port"`
+}
+
+type DatabaseSettings struct {
+	Host            string `yaml:"host" json:"host"`
+	Port            int    `yaml:"port" json:"port"`
+	User            string `yaml:"user" json:"user"`
+	Database        string `yaml:"database" json:"database"`
+	Password        string `yaml:"password" json:"password"`
+	Timeout         int    `yaml:"timeout" json:"timeout"`
+	PoolSize        int    `yaml:"pool_size" json:"pool_size"`
+	RetriesNum      int    `yaml:"retries_num" json:"retries_num"`
+	RetriesInterval int    `yaml:"retries_interval" json:"retries_interval"`
+}
+
+type S3Setting struct {
+	Region string `yaml:"region" json:"region"`
+	Bucket string `yaml:"bucket" json:"bucket"`
+}
+
+type AwsCreds struct {
+	AccountID     string `yaml:"account_id" json:"account_id"`
+	AccountSecret string `yaml:"account_secret" json:"account_secret"`
+}
+
+type MongoDBSettings struct {
+	DatabaseSettings  `yaml:",inline" json:",inline"`
+	Collection string `yaml:"collection" json:"collection"`
+}
+
+type ConsumerSettings struct {
+	FetchDelay int `yaml:"fetch_delay" json:"fetch_delay"`
+	WorkersNum int `yaml:"workers_num" json:"workers_num"`
+}
+
+type MongoConsumer struct {
+	MongoDBSettings  `yaml:",inline" json:",inline"`
+	ConsumerSettings `yaml:",inline" json:",inline"`
+}
+
+type TelegramSettings struct {
+	APIToken    string `yaml:"api_token" json:"api_token"`
+	BotName     string `yaml:"bot_name" json:"bot_name"`
+	HttpTimeout int    `yaml:"http_timeout" json:"http_timeout"`
+	Retries     int    `yaml:"retries" json:"retries"`
+}
+
+type GoogleAPI struct {
+	APIKey      string `yaml:"api_key" json:"api_key"`
+	HttpTimeout int    `yaml:"http_timeout" json:"http_timeout"`
 }
