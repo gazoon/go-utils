@@ -214,6 +214,7 @@ func readFile(filePath string) ([]byte, bool, error) {
 type RootConfig struct {
 	ServiceName string `yaml:"service_name" json:"service_name"`
 	Port        int    `yaml:"port" json:"port"`
+	LogLevel    string `yaml:"log_level" json:"log_level"`
 }
 
 type DatabaseSettings struct {

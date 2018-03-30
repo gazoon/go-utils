@@ -9,12 +9,13 @@ import (
 
 	"context"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/gazoon/go-utils/logging"
-	"path"
-	"time"
 	"encoding/json"
 	"fmt"
+	log "github.com/Sirupsen/logrus"
+	"github.com/gazoon/go-utils/logging"
+	"net/http"
+	"path"
+	"time"
 )
 
 type ContextKey int
@@ -66,4 +67,17 @@ func PrepareContext(requestID string) context.Context {
 	logger := logging.WithRequestID(requestID)
 	ctx = logging.NewContext(ctx, logger)
 	return ctx
+}
+
+func RecoveryHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				http.Error(w, "Internal error", http.StatusInternalServerError)
+				logger := logging.FromContext(r.Context())
+				logger.Errorf("Panic recovered: %s", err)
+			}
+		}()
+		h.ServeHTTP(w, r)
+	})
 }
