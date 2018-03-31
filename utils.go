@@ -13,15 +13,11 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gazoon/go-utils/logging"
+	"github.com/gazoon/go-utils/request"
 	"net/http"
 	"path"
+	"sync"
 	"time"
-)
-
-type ContextKey int
-
-var (
-	RequestIdCtxKey = ContextKey(1)
 )
 
 func ObjToString(obj interface{}) string {
@@ -61,10 +57,11 @@ func MergeMaps(maps ...map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func PrepareContext(requestID string) context.Context {
+func CreateContext() context.Context {
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, RequestIdCtxKey, requestID)
-	logger := logging.WithRequestID(requestID)
+	requestId := request.NewRequestId()
+	ctx = request.NewContext(ctx, requestId)
+	logger := logging.WithRequestID(requestId)
 	ctx = logging.NewContext(ctx, logger)
 	return ctx
 }
@@ -80,4 +77,18 @@ func RecoveryHandler(h http.Handler) http.Handler {
 		}()
 		h.ServeHTTP(w, r)
 	})
+}
+
+func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return false // completed normally
+	case <-time.After(timeout):
+		return true // timed out
+	}
 }

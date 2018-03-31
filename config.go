@@ -244,16 +244,6 @@ type MongoDBSettings struct {
 	Collection string `yaml:"collection" json:"collection"`
 }
 
-type ConsumerSettings struct {
-	FetchDelay int `yaml:"fetch_delay" json:"fetch_delay"`
-	WorkersNum int `yaml:"workers_num" json:"workers_num"`
-}
-
-type MongoConsumer struct {
-	MongoDBSettings  `yaml:",inline" json:",inline"`
-	ConsumerSettings `yaml:",inline" json:",inline"`
-}
-
 type TelegramSettings struct {
 	APIToken    string `yaml:"api_token" json:"api_token"`
 	BotName     string `yaml:"bot_name" json:"bot_name"`
