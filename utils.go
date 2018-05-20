@@ -47,6 +47,10 @@ func TimestampMilliseconds() int {
 	return int(time.Now().UnixNano() / 1000000)
 }
 
+func TimestampSeconds() int {
+	return int(TimestampMilliseconds() / 1000)
+}
+
 func MergeMaps(maps ...map[string]interface{}) map[string]interface{} {
 	result := map[string]interface{}{}
 	for _, m := range maps {
@@ -59,6 +63,10 @@ func MergeMaps(maps ...map[string]interface{}) map[string]interface{} {
 
 func CreateContext() context.Context {
 	ctx := context.Background()
+	return FillContext(ctx)
+}
+
+func FillContext(ctx context.Context) context.Context {
 	requestId := request.NewRequestId()
 	ctx = request.NewContext(ctx, requestId)
 	logger := logging.WithRequestID(requestId)

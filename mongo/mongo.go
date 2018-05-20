@@ -4,6 +4,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gazoon/go-utils"
 	"github.com/globalsign/mgo"
+	"github.com/pkg/errors"
 	"strconv"
 	"time"
 )
@@ -12,7 +13,18 @@ const (
 	duplicateKeyCode = 11000
 )
 
-func Connect(settings *utils.MongoDBSettings) (*mgo.Database, error) {
+func ConnectCollection(settings *utils.MongoDBSettings) (*mgo.Collection, error) {
+	db, err := ConnectDatabase(settings)
+	if err != nil {
+		return nil, err
+	}
+	if settings.Collection == "" {
+		return nil, errors.Errorf("can't connect to mongo collection: %+v", settings)
+	}
+	return db.C(settings.Collection), nil
+}
+
+func ConnectDatabase(settings *utils.MongoDBSettings) (*mgo.Database, error) {
 	info := &mgo.DialInfo{
 		Addrs:     []string{settings.Host + ":" + strconv.Itoa(settings.Port)},
 		Database:  settings.Database,
