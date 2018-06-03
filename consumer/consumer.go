@@ -12,18 +12,16 @@ import (
 type Consumer struct {
 	fetch      func(context.Context) interface{}
 	process    func(context.Context, interface{})
-	name       string
 	fetchDelay time.Duration
 	wg         sync.WaitGroup
 	stopFlag   int32
 }
 
 func New(fetch func(context.Context) interface{},
-	process func(context.Context, interface{}),
-	consumerName string, fetchDelay int) *Consumer {
+	process func(context.Context, interface{}), fetchDelay int) *Consumer {
 
 	return &Consumer{
-		fetch: fetch, process: process, name: consumerName,
+		fetch: fetch, process: process,
 		fetchDelay: time.Duration(fetchDelay) * time.Millisecond,
 	}
 }
@@ -52,11 +50,10 @@ func (self *Consumer) runLoop() {
 }
 
 func (self *Consumer) Stop() {
-	logger := log.WithField("consumer", self.name)
-	logger.Info("Stop processing")
+	log.Info("Stop consuming")
 	atomic.StoreInt32(&self.stopFlag, 1)
 	isTimeout := utils.WaitTimeout(&self.wg, time.Second*5)
 	if isTimeout {
-		logger.Warning("Stop processing took to long")
+		log.Warning("Stop processing took to long")
 	}
 }
