@@ -87,6 +87,10 @@ func FromContextAndBase(ctx context.Context, base *log.Entry) *log.Entry {
 }
 
 func NewContext(ctx context.Context, logger *log.Entry) context.Context {
+	oldLogger, ok := ctx.Value(loggerCtxKey).(*log.Entry)
+	if ok {
+		logger = oldLogger.WithFields(logger.Data)
+	}
 	return context.WithValue(ctx, loggerCtxKey, logger)
 }
 

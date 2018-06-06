@@ -9,20 +9,20 @@ import (
 	"time"
 )
 
+type Process func()
+type Fetch func(context.Context) Process
+
 type Consumer struct {
-	fetch      func(context.Context) interface{}
-	process    func(context.Context, interface{})
+	fetch      Fetch
 	fetchDelay time.Duration
 	wg         sync.WaitGroup
 	stopFlag   int32
 }
 
-func New(fetch func(context.Context) interface{},
-	process func(context.Context, interface{}), fetchDelay int) *Consumer {
+func New(fetch Fetch, fetchDelay int) *Consumer {
 
 	return &Consumer{
-		fetch: fetch, process: process,
-		fetchDelay: time.Duration(fetchDelay) * time.Millisecond,
+		fetch: fetch, fetchDelay: time.Duration(fetchDelay) * time.Millisecond,
 	}
 }
 
@@ -36,15 +36,15 @@ func (self *Consumer) runLoop() {
 			return
 		}
 		ctx := context.Background()
-		data := self.fetch(ctx)
-		if data == nil {
+		process := self.fetch(ctx)
+		if process == nil {
 			time.Sleep(self.fetchDelay)
 			continue
 		}
 		self.wg.Add(1)
 		go func() {
 			defer self.wg.Done()
-			self.process(ctx, data)
+			process()
 		}()
 	}
 }

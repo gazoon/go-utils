@@ -78,7 +78,7 @@ func NewConfigParser(configDir string, options ...func(*ConfigParserOptions)) *C
 
 func (self *ConfigParser) Parse(out interface{}) error {
 	err := self.parse(out)
-	return errors.Wrap(err, "can't parse config: %s")
+	return errors.Wrap(err, "can't parse config")
 }
 
 func (self *ConfigParser) parse(out interface{}) error {
@@ -165,18 +165,19 @@ func (self *ConfigParser) processFile(fileName string) (map[string]interface{}, 
 func (self *ConfigParser) mergeFileData(filePath string, resultData map[string]interface{}) error {
 	b, exists, err := readFile(filePath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "file: %s", filePath)
 	}
 	if exists {
 		fileData := map[string]interface{}{}
 		err = self.options.Transformer.Unmarshal(b, fileData)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "file: %s", filePath)
 		}
 		resultData = mergeData(resultData, fileData)
 	}
 	return nil
 }
+
 func (self *ConfigParser) writeToOut(configData map[string]interface{}, out interface{}) error {
 	outMap, ok := out.(map[string]interface{})
 	if ok {
@@ -240,8 +241,8 @@ type AwsCreds struct {
 }
 
 type MongoDBSettings struct {
-	DatabaseSettings  `yaml:",inline" json:",inline"`
-	Collection string `yaml:"collection" json:"collection"`
+	DatabaseSettings `yaml:",inline" json:",inline"`
+	Collection       string `yaml:"collection" json:"collection"`
 }
 
 type TelegramSettings struct {
