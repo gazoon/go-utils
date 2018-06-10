@@ -14,6 +14,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gazoon/go-utils/logging"
 	"github.com/gazoon/go-utils/request"
+	"github.com/globalsign/mgo/bson"
 	"net/http"
 	"path"
 	"sync"
@@ -99,4 +100,30 @@ func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	case <-time.After(timeout):
 		return true // timed out
 	}
+}
+
+func ConvertBsonToMap(data interface{}) interface{} {
+	switch item := data.(type) {
+	case bson.M:
+		result := make(map[string]interface{}, len(item))
+		for k, v := range item {
+			result[k] = ConvertBsonToMap(v)
+		}
+		return result
+	case map[string]interface{}:
+		result := make(map[string]interface{}, len(item))
+		for k, v := range item {
+			result[k] = ConvertBsonToMap(v)
+		}
+		return result
+	case []interface{}:
+		result := make([]interface{}, len(item))
+		for i, v := range item {
+			result[i] = ConvertBsonToMap(v)
+		}
+		return result
+	default:
+		return data
+	}
+	return data
 }
