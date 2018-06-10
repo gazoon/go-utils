@@ -9,6 +9,10 @@ import (
 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/gazoon/go-utils/request"
+	"github.com/getsentry/raven-go"
+	"github.com/pkg/errors"
+	"runtime/debug"
 )
 
 var (
@@ -39,6 +43,18 @@ func NewLoggerMixin(packageName string, additional log.Fields) *LoggerMixin {
 
 func (l *LoggerMixin) GetLogger(ctx context.Context) *log.Entry {
 	return FromContextAndBase(ctx, l.Logger)
+}
+
+func (l *LoggerMixin) LogError(ctx context.Context, e interface{}) {
+	logger := l.GetLogger(ctx)
+	err, ok := e.(error)
+	if !ok {
+		err = errors.Errorf("error: %v", e)
+	}
+	logger.Errorf("%+v", err)
+	debug.PrintStack()
+	requestId := request.FromContext(ctx)
+	raven.CaptureError(err, map[string]string{"request_id": requestId})
 }
 
 type customFormatter struct {
