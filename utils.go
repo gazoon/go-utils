@@ -52,6 +52,10 @@ func TimestampSeconds() int {
 	return int(TimestampMilliseconds() / 1000)
 }
 
+func UTCNow() time.Time {
+	return time.Now().UTC()
+}
+
 func MergeMaps(maps ...map[string]interface{}) map[string]interface{} {
 	result := map[string]interface{}{}
 	for _, m := range maps {
