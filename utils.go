@@ -17,9 +17,31 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"net/http"
 	"path"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 )
+
+var WordsSplitRegexp = regexp.MustCompile(`(["=@'|/<>\\;:.,\s!?]+)`)
+
+func SplitWordsLowered(text string) []string {
+	words := SplitWords(text)
+	for i := range words {
+		words[i] = strings.ToLower(words[i])
+	}
+	return words
+}
+
+func SplitWords(text string) []string {
+	var result []string
+	for _, w := range WordsSplitRegexp.Split(text, -1) {
+		if len(w) != 0 {
+			result = append(result, w)
+		}
+	}
+	return result
+}
 
 func ObjToString(obj interface{}) string {
 	b, err := json.Marshal(obj)

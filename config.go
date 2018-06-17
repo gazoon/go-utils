@@ -256,3 +256,9 @@ type GoogleAPI struct {
 	APIKey      string `yaml:"api_key" json:"api_key"`
 	HttpTimeout int    `yaml:"http_timeout" json:"http_timeout"`
 }
+
+type BotInfo struct {
+	Name     string `yaml:"name"`
+	Username string `yaml:"username"`
+	Admins   []int  `yaml:"admins"`
+}
