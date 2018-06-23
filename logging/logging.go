@@ -46,19 +46,31 @@ func (l *LoggerMixin) GetLogger(ctx context.Context) *log.Entry {
 }
 
 func (l *LoggerMixin) LogError(ctx context.Context, e interface{}) {
+	l.LogErrorWithFields(ctx, e, nil)
+}
+
+func (l *LoggerMixin) LogErrorWithField(ctx context.Context, e interface{},
+	key string, value interface{}) {
+	l.LogErrorWithFields(ctx, e, map[string]interface{}{key: value})
+}
+
+func (l *LoggerMixin) LogErrorWithFields(ctx context.Context, e interface{}, fields map[string]interface{}) {
+
 	logger := l.GetLogger(ctx)
 	err, ok := e.(error)
 	if !ok {
 		err = fmt.Errorf("error: %v", e)
 	}
-
-	logger.Errorf("%+v", err)
+	logger.WithFields(fields).Errorf("%+v", err)
 	if errType := reflect.TypeOf(err); errType.String() != "*errors.fundamental" {
 		debug.PrintStack()
 	}
 
-	requestId := request.FromContext(ctx)
-	raven.CaptureError(err, map[string]string{"request_id": requestId})
+	sentryFields := map[string]string{"request_id": request.FromContext(ctx)}
+	for k, v := range fields {
+		sentryFields[k] = fmt.Sprintf("%v", v)
+	}
+	raven.CaptureError(err, sentryFields)
 }
 
 type customFormatter struct {
