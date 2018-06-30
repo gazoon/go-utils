@@ -11,8 +11,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gazoon/go-utils/request"
 	"github.com/getsentry/raven-go"
-	"reflect"
-	"runtime/debug"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -62,9 +61,6 @@ func (l *LoggerMixin) LogErrorWithFields(ctx context.Context, e interface{}, fie
 		err = fmt.Errorf("error: %v", e)
 	}
 	logger.WithFields(fields).Errorf("%+v", err)
-	if errType := reflect.TypeOf(err); errType.String() != "*errors.fundamental" {
-		debug.PrintStack()
-	}
 
 	sentryFields := map[string]string{"request_id": request.FromContext(ctx)}
 	for k, v := range fields {
@@ -102,7 +98,8 @@ func (cf *customFormatter) Format(e *log.Entry) ([]byte, error) {
 	var newEntry = new(log.Entry)
 	*newEntry = *e
 	newEntry.Data = data
-	return cf.logFormatter.Format(newEntry)
+	b, err := cf.logFormatter.Format(newEntry)
+	return b, errors.Wrap(err, "log format")
 }
 
 func FromContext(ctx context.Context) *log.Entry {
@@ -159,6 +156,11 @@ func PatchStdLog(logLevelName, serviceName string) {
 	formatter := NewFormatter(serviceName)
 	log.SetLevel(logLevel)
 	log.SetFormatter(formatter)
+}
+
+func SetSentryDSN(dsn string) error {
+	err := raven.SetDSN(dsn)
+	return errors.Wrap(err, "raven set dsn")
 }
 
 func StartLevelToggle(togglePath string, port int) {

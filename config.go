@@ -35,11 +35,13 @@ type DataTransformer interface {
 type YamlTransformer struct{}
 
 func (self YamlTransformer) Unmarshal(in []byte, out interface{}) error {
-	return yaml.Unmarshal(in, out)
+	err := yaml.Unmarshal(in, out)
+	return errors.Wrap(err, "yaml unmarshal")
 }
 
 func (self YamlTransformer) Marshal(in interface{}) ([]byte, error) {
-	return yaml.Marshal(in)
+	b, err := yaml.Marshal(in)
+	return b, errors.Wrap(err, "yaml marshal")
 }
 
 type ConfigParser struct {
@@ -106,7 +108,7 @@ func (self *ConfigParser) getAllFiles() ([]string, error) {
 	for _, dirPath := range []string{self.configDir, self.envDir} {
 		dirFiles, err := ioutil.ReadDir(dirPath)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "get config dir files")
 		}
 		for _, info := range dirFiles {
 			if info.IsDir() {
@@ -207,7 +209,7 @@ func readFile(filePath string) ([]byte, bool, error) {
 		if os.IsNotExist(err) {
 			return nil, false, nil
 		}
-		return nil, false, err
+		return nil, false, errors.Wrap(err, "read config file")
 	}
 	return b, true, nil
 }
@@ -243,6 +245,10 @@ type AwsCreds struct {
 type MongoDBSettings struct {
 	DatabaseSettings `yaml:",inline" json:",inline"`
 	Collection       string `yaml:"collection" json:"collection"`
+}
+
+type SentrySettings struct {
+	DSN string `yaml:"dsn" json:"dsn"`
 }
 
 type TelegramSettings struct {

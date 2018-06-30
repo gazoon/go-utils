@@ -10,6 +10,7 @@ import (
 	"github.com/gazoon/go-utils/request"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
 
@@ -43,7 +44,7 @@ func (self *MongoWriter) Put(ctx context.Context, queueName string, chatId int, 
 			"$set":  bson.M{"chat_id": chatId},
 			"$push": bson.M{"msgs": messageEnvelope},
 		})
-	return err
+	return errors.Wrap(err, "add message to the queue")
 }
 
 type MongoReader struct {
@@ -84,7 +85,7 @@ func (self ReadyMessage) String() string {
 	return utils.ObjToString(&self)
 }
 
-func (self *MongoReader) GetNext(ctx context.Context) (*ReadyMessage, error) {
+func (self *MongoReader) GetAndRemoveNext(ctx context.Context) (*ReadyMessage, error) {
 	var doc Document
 	currentTime := utils.TimestampMilliseconds()
 	processingID := uuid.NewV4().String()
@@ -103,7 +104,7 @@ func (self *MongoReader) GetNext(ctx context.Context) (*ReadyMessage, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "get and remove next message document")
 	}
 	logger := self.GetLogger(ctx).WithFields(
 		log.Fields{"chat_id": doc.ChatID, "processing_id": processingID})
@@ -125,7 +126,7 @@ func (self *MongoReader) GetNext(ctx context.Context) (*ReadyMessage, error) {
 func (self *MongoReader) FinishProcessing(ctx context.Context, processingID string) error {
 	err := self.client.Remove(bson.M{"msgs": []interface{}{}, "processing.id": processingID})
 	if err != nil && err != mgo.ErrNotFound {
-		return err
+		return errors.Wrap(err, "remove document after processing")
 	}
 	if err == nil {
 		return nil
@@ -140,5 +141,5 @@ func (self *MongoReader) FinishProcessing(ctx context.Context, processingID stri
 		logger.Warn("Message document with such processing id no longer exists")
 		return nil
 	}
-	return err
+	return errors.Wrap(err, "reset document processing id")
 }

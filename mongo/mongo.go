@@ -36,7 +36,7 @@ func ConnectDatabase(settings *utils.MongoDBSettings) (*mgo.Database, error) {
 	log.Infof("Connecting to mongodb. Dial info: %+v", info)
 	session, err := mgo.DialWithInfo(info)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "mongo dial")
 	}
 	session.SetSafe(&mgo.Safe{WMode: "majority", J: true, WTimeout: settings.Timeout * 1000})
 	session.SetMode(mgo.Eventual, true)
