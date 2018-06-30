@@ -158,11 +158,6 @@ func PatchStdLog(logLevelName, serviceName string) {
 	log.SetFormatter(formatter)
 }
 
-func SetSentryDSN(dsn string) error {
-	err := raven.SetDSN(dsn)
-	return errors.Wrap(err, "raven set dsn")
-}
-
 func StartLevelToggle(togglePath string, port int) {
 	mux := http.NewServeMux()
 	mux.HandleFunc(togglePath, func(w http.ResponseWriter, r *http.Request) {

@@ -60,10 +60,7 @@ func NewConfigParser(configDir string, options ...func(*ConfigParserOptions)) *C
 	parser.configDir = configDir
 
 	if parser.options.Env == "" {
-		parser.options.Env = os.Getenv("ENV")
-		if parser.options.Env == "" {
-			parser.options.Env = "dev"
-		}
+		parser.options.Env = GetEnv()
 	}
 
 	if parser.options.Extension == "" {

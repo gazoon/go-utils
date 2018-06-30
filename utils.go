@@ -14,7 +14,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gazoon/go-utils/logging"
 	"github.com/gazoon/go-utils/request"
+	"github.com/getsentry/raven-go"
 	"github.com/globalsign/mgo/bson"
+	"github.com/pkg/errors"
 	"net/http"
 	"path"
 	"regexp"
@@ -101,6 +103,15 @@ func FillContext(ctx context.Context) context.Context {
 	return ctx
 }
 
+func InitializeSentry(dsn string) error {
+	err := raven.SetDSN(dsn)
+	if err != nil {
+		return errors.Wrap(err, "raven set dsn")
+	}
+	raven.SetEnvironment(GetEnv())
+	return nil
+}
+
 func RecoveryHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -152,4 +163,12 @@ func ConvertBsonToMap(data interface{}) interface{} {
 		return data
 	}
 	return data
+}
+
+func GetEnv() string {
+	env := os.Getenv("ENV")
+	if env == "" {
+		return "dev"
+	}
+	return env
 }
