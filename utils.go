@@ -17,7 +17,6 @@ import (
 	"github.com/getsentry/raven-go"
 	"github.com/globalsign/mgo/bson"
 	"github.com/pkg/errors"
-	"net/http"
 	"path"
 	"regexp"
 	"strings"
@@ -61,7 +60,8 @@ func GetCurrentFileDir() string {
 func WaitingForShutdown() {
 	ch := make(chan os.Signal)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-	log.Infof("Received shutdown signal: %s", <-ch)
+	signalCode := <-ch
+	log.WithField("signal", signalCode).Info("Received shutdown signal")
 }
 
 func FunctionName(f interface{}) string {
@@ -110,19 +110,6 @@ func InitializeSentry(dsn string) error {
 	}
 	raven.SetEnvironment(GetEnv())
 	return nil
-}
-
-func RecoveryHandler(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if err := recover(); err != nil {
-				http.Error(w, "Internal error", http.StatusInternalServerError)
-				logger := logging.FromContext(r.Context())
-				logger.Errorf("Panic recovered: %s", err)
-			}
-		}()
-		h.ServeHTTP(w, r)
-	})
 }
 
 func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {

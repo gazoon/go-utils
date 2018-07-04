@@ -163,11 +163,11 @@ func StartLevelToggle(togglePath string, port int) {
 	mux.HandleFunc(togglePath, func(w http.ResponseWriter, r *http.Request) {
 		levelName := r.FormValue("level")
 		level := getLogLevel(levelName)
-		gLogger.Infof("Toggle global log level from %s to %s", log.GetLevel(), level)
+		gLogger.WithFields(log.Fields{"from": log.GetLevel(), "to": level}).Info("Toggle global log level")
 		log.SetLevel(level)
 		fmt.Fprint(w, level)
 	})
-	gLogger.Infof("Toggle server is running on %d port, path=%s", port, togglePath)
+	gLogger.WithFields(log.Fields{"port": port, "path": togglePath}).Info("Toggle server is running")
 	go func() {
 		http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
 	}()

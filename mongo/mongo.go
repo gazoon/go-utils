@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gazoon/go-utils"
 	"github.com/globalsign/mgo"
@@ -33,7 +34,7 @@ func ConnectDatabase(settings *utils.MongoDBSettings) (*mgo.Database, error) {
 		Timeout:   time.Duration(settings.Timeout) * time.Second,
 		PoolLimit: settings.PoolSize,
 	}
-	log.Infof("Connecting to mongodb. Dial info: %+v", info)
+	log.WithField("dial_info", fmt.Sprintf("%+v", info)).Info("Connecting to mongodb")
 	session, err := mgo.DialWithInfo(info)
 	if err != nil {
 		return nil, errors.Wrap(err, "mongo dial")

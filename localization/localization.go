@@ -55,11 +55,11 @@ func (self *Manager) Gettext(lang, msgid string, vars ...interface{}) string {
 func (self *Manager) GettextD(lang, domain, msgid string, vars ...interface{}) string {
 	locale, ok := self.locales[lang]
 	if !ok {
-		logger.Errorf("Unknown language: %s", lang)
+		logger.WithField("language", lang).Error("Unknown language")
 		return msgid
 	}
 	if _, exists := locale.Domains[domain]; !exists {
-		logger.Errorf("Unknown domain: %s", domain)
+		logger.WithField("domain", domain).Error("Unknown domain")
 	}
 	return locale.GetD(domain, msgid, vars...)
 }
