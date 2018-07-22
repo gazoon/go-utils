@@ -47,21 +47,6 @@ func (self *MongoWriter) Put(ctx context.Context, queueName string, chatId int, 
 	return errors.Wrap(err, "add message to the queue")
 }
 
-type MongoReader struct {
-	*logging.LoggerMixin
-	client *mgo.Collection
-}
-
-func NewMongoReader(settings *utils.MongoDBSettings) (*MongoReader, error) {
-
-	collection, err := mongo.ConnectCollection(settings)
-	if err != nil {
-		return nil, err
-	}
-	logger := logging.NewLoggerMixin("mongo_queue_reader", nil)
-	return &MongoReader{client: collection, LoggerMixin: logger}, nil
-}
-
 type Document struct {
 	ChatID int `bson:"chat_id"`
 	Msgs   []*struct {
@@ -83,6 +68,20 @@ type ReadyMessage struct {
 
 func (self ReadyMessage) String() string {
 	return utils.ObjToString(&self)
+}
+
+type MongoReader struct {
+	*logging.LoggerMixin
+	client *mgo.Collection
+}
+
+func NewMongoReader(settings *utils.MongoDBSettings) (*MongoReader, error) {
+	collection, err := mongo.ConnectCollection(settings)
+	if err != nil {
+		return nil, err
+	}
+	logger := logging.NewLoggerMixin("mongo_queue_reader", nil)
+	return &MongoReader{client: collection, LoggerMixin: logger}, nil
 }
 
 func (self *MongoReader) GetAndRemoveNext(ctx context.Context) (*ReadyMessage, error) {
