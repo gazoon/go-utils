@@ -19,32 +19,42 @@ const (
 )
 
 type MongoWriter struct {
-	client *mgo.Database
+	client *mgo.Collection
 }
 
 func NewMongoWriter(settings *utils.MongoDBSettings) (*MongoWriter, error) {
 
-	client, err := mongo.ConnectDatabase(settings)
+	client, err := mongo.ConnectCollection(settings)
 	if err != nil {
 		return nil, err
 	}
 	return &MongoWriter{client: client}, nil
 }
 
-func (self *MongoWriter) Put(ctx context.Context, queueName string, chatId int, message interface{}) error {
-	collection := self.client.C(queueName)
+func (self *MongoWriter) Put(ctx context.Context, chatId int, message interface{}) error {
 	messageEnvelope := map[string]interface{}{
 		"created_at": utils.TimestampMilliseconds(),
 		"payload":    message,
 		"request_id": request.FromContext(ctx),
 	}
-	_, err := collection.Upsert(
+	_, err := self.client.Upsert(
 		bson.M{"chat_id": chatId},
 		bson.M{
 			"$set":  bson.M{"chat_id": chatId},
 			"$push": bson.M{"msgs": messageEnvelope},
 		})
 	return errors.Wrap(err, "add message to the queue")
+}
+
+func (self *MongoWriter) CreateIndexes() error {
+	var err error
+
+	err = self.client.EnsureIndex(mgo.Index{Key: []string{"chat_id"}, Unique: true})
+	if err != nil {
+		return errors.Wrap(err, "unique key: chat_id")
+	}
+
+	return nil
 }
 
 type Document struct {
@@ -141,4 +151,20 @@ func (self *MongoReader) FinishProcessing(ctx context.Context, processingID stri
 		return nil
 	}
 	return errors.Wrap(err, "reset document processing id")
+}
+
+func (self *MongoReader) CreateIndexes() error {
+	var err error
+
+	err = self.client.EnsureIndex(mgo.Index{Key: []string{"processing.id"}, Unique: true})
+	if err != nil {
+		return errors.Wrap(err, "unique key: processing.id")
+	}
+
+	err = self.client.EnsureIndex(mgo.Index{Key: []string{"processing.started_at", "msgs.0.created_at"}})
+	if err != nil {
+		return errors.Wrap(err, "key: processing.started_at,msgs.0.created_at")
+	}
+
+	return nil
 }
