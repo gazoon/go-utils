@@ -152,7 +152,6 @@ func getLogLevel(logLevelName string) log.Level {
 }
 
 func PatchStdLog(logLevelName, serviceName string) {
-	fmt.Println("FFFF")
 	logLevel := getLogLevel(logLevelName)
 	formatter := NewFormatter(serviceName)
 	log.SetLevel(logLevel)
