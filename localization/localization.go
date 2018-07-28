@@ -58,8 +58,5 @@ func (self *Manager) GettextD(lang, domain, msgid string, vars ...interface{}) s
 		logger.WithField("language", lang).Error("Unknown language")
 		return msgid
 	}
-	if _, exists := locale.Domains[domain]; !exists {
-		logger.WithField("domain", domain).Error("Unknown domain")
-	}
 	return locale.GetD(domain, msgid, vars...)
 }
