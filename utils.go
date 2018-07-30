@@ -105,6 +105,11 @@ func FillContext(ctx context.Context) context.Context {
 }
 
 func InitializeSentry(dsn string) error {
+	if dsn == "" {
+		log.Info("Skip Sentry initialization: empty dsn.")
+		return nil
+	}
+
 	err := raven.SetDSN(dsn)
 	if err != nil {
 		return errors.Wrap(err, "raven set dsn")
